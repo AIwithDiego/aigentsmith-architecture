@@ -111,7 +111,7 @@ Every non-trivial change started with a written design, reviewed separately from
 - **Deploys should ask, not assume.** The worst bugs here were things that were true on one box, in one doc or in one log line, and not where it mattered.
 - **Four reviews before code is slower, and cheaper than the outage.** On one change, two of the four problems the reviews found would have silently stopped all writes on live tenants.
 
-**What's next:** AIgentSmith is paused; the patterns here (consent cards, database fences, honest capability lists) carry into what I build next. <!-- TODO(Diego): OK to say publicly that AIgentSmith is paused? Name the next product? -->
+**What's next:** The patterns here (consent cards, database fences, honest capability lists) carry into what I build next.
 
 ## Ground rules
 
