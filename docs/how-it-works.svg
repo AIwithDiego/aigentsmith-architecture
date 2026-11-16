@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" width="1200" height="660" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>AIgentSmith: how it works</title>
+  <desc>The owner talks to the agent over web chat or Telegram. Web chat goes through the control plane, which checks login and tenant membership and mints a single-use Ed25519 token. The token reaches the tenant's runtime gateway over the private network only. Each tenant is one sealed unit: the gateway verifies the token, jails paths and audits, then hands the turn to the agent engine, which runs the tool loop, memory and write engine on the tenant folder (briefing, memory notes, SQLite store, charter, connectors). The engine reads the business's own Postgres through a read-only role and writes only through a commit role limited to named columns. Model calls go to the Claude API. Every write follows four steps: propose (stage a pending row and show a card), confirm (the owner taps, deterministic code checks a single-use nonce), commit (one transaction, readback hash re-checked, audit row) and undo.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7a90"/></marker>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4ade80"/></marker>
+    <style>
+      .card { fill: #0b1120; stroke: #1a2338; stroke-width: 1.5; }
+      .step { font-size: 11.5px; font-weight: 700; letter-spacing: 1.2px; fill: #00e5ff; }
+      .h { font-size: 17px; font-weight: 700; fill: #f3f6fc; }
+      .t { font-size: 13px; fill: #b5bfd0; }
+      .s { font-size: 11.5px; fill: #6b7a90; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; fill: #6b7a90; }
+      .line { stroke: #6b7a90; stroke-width: 2; fill: none; }
+      .gline { stroke: #4ade80; stroke-width: 2; fill: none; }
+    </style>
+  </defs>
+  <rect width="1200" height="660" rx="20" fill="#050810"/>
+  <text x="48" y="58" font-size="30" font-weight="800" fill="#f3f6fc">AIgentSmith</text>
+  <text x="48" y="88" font-size="16" fill="#b5bfd0">One sealed unit per business. The data stays in the business's own database. Every write waits for the owner.</text>
+
+  <!-- 1 Owner -->
+  <rect class="card" x="48" y="150" width="170" height="170" rx="14"/>
+  <rect x="48" y="150" width="170" height="4" rx="2" fill="#00e5ff"/>
+  <text class="step" x="64" y="182">1 · OWNER</text>
+  <text class="h" x="64" y="208">The business</text>
+  <text class="t" x="64" y="234">Asks in plain words,</text>
+  <text class="t" x="64" y="252">confirms every change</text>
+  <text class="mono" x="64" y="300">web chat · Telegram</text>
+
+  <!-- 2 Control plane -->
+  <path class="line" d="M220 210 H246" marker-end="url(#a)"/>
+  <rect class="card" x="250" y="150" width="200" height="130" rx="14"/>
+  <rect x="250" y="150" width="200" height="4" rx="2" fill="#00e5ff"/>
+  <text class="step" x="266" y="182">2 · CONTROL PLANE</text>
+  <text class="h" x="266" y="208">Login, membership</text>
+  <text class="t" x="266" y="234">Mints a single-use,</text>
+  <text class="t" x="266" y="252">signed Ed25519 token</text>
+  <text class="mono" x="266" y="270">Next.js · Supabase Auth</text>
+
+  <!-- sealed unit container -->
+  <rect x="482" y="118" width="420" height="352" rx="18" fill="none" stroke="#ff2dcd" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <text class="step" x="498" y="140" style="fill:#ff2dcd">ONE SEALED UNIT PER TENANT · OWN CONTAINER · DEFAULT-DENY EGRESS</text>
+
+  <!-- control plane to gateway -->
+  <path class="line" d="M452 215 H494" marker-end="url(#a)"/>
+
+  <!-- 3 Gateway -->
+  <rect class="card" x="498" y="150" width="190" height="130" rx="14"/>
+  <rect x="498" y="150" width="190" height="4" rx="2" fill="#ff2dcd"/>
+  <text class="step" x="514" y="182">3 · RUNTIME GATEWAY</text>
+  <text class="h" x="514" y="208">Checks the token</text>
+  <text class="t" x="514" y="234">Private address only.</text>
+  <text class="t" x="514" y="252">Tenant from the claims.</text>
+  <text class="mono" x="514" y="270">path jail · audit</text>
+
+  <!-- gateway to engine -->
+  <path class="line" d="M688 215 H700" marker-end="url(#a)"/>
+
+  <!-- Telegram straight to the engine -->
+  <path class="line" d="M220 302 H700" marker-end="url(#a)"/>
+  <text class="s" x="262" y="296">Telegram goes straight to the engine's bot adapter</text>
+
+  <!-- 4 Engine -->
+  <rect class="card" x="704" y="150" width="182" height="170" rx="14"/>
+  <rect x="704" y="150" width="182" height="4" rx="2" fill="#ff2dcd"/>
+  <text class="step" x="720" y="182">4 · AGENT ENGINE</text>
+  <text class="h" x="720" y="208">Tool loop</text>
+  <text class="t" x="720" y="234">Only the tools the</text>
+  <text class="t" x="720" y="252">charter switched on.</text>
+  <text class="t" x="720" y="270">No generic SQL tool.</text>
+  <text class="mono" x="720" y="306">TypeScript · Deno</text>
+
+  <!-- engine to folder -->
+  <path class="line" d="M795 322 V342" marker-end="url(#a)"/>
+
+  <!-- 5 Tenant folder -->
+  <rect class="card" x="498" y="346" width="388" height="108" rx="14"/>
+  <rect x="498" y="346" width="388" height="4" rx="2" fill="#ff2dcd"/>
+  <text class="step" x="514" y="378">5 · TENANT FOLDER</text>
+  <text class="t" x="514" y="402">Briefing, memory notes, SQLite store, permissions</text>
+  <text class="t" x="514" y="420">charter, connector config. No secrets inside.</text>
+  <text class="mono" x="514" y="442">no process can read two tenants</text>
+
+  <!-- engine to business db -->
+  <path class="gline" d="M888 215 H930" marker-end="url(#g)"/>
+
+  <!-- 6 Business database -->
+  <rect class="card" x="934" y="150" width="218" height="170" rx="14"/>
+  <rect x="934" y="150" width="218" height="4" rx="2" fill="#4ade80"/>
+  <text class="step" x="950" y="182" style="fill:#4ade80">6 · THE BUSINESS'S DATA</text>
+  <text class="h" x="950" y="208">Its own Postgres</text>
+  <text class="t" x="950" y="234">Read-only role for tools,</text>
+  <text class="t" x="950" y="252">commit role for named</text>
+  <text class="t" x="950" y="270">columns only. The data</text>
+  <text class="t" x="950" y="288">never moves.</text>
+
+  <!-- engine to Claude -->
+  <path class="line" d="M888 300 H912 V398 H930" marker-end="url(#a)"/>
+
+  <!-- 7 Claude API -->
+  <rect class="card" x="934" y="346" width="218" height="108" rx="14"/>
+  <rect x="934" y="346" width="218" height="4" rx="2" fill="#00e5ff"/>
+  <text class="step" x="950" y="378">7 · MODEL</text>
+  <text class="h" x="950" y="404">Claude API</text>
+  <text class="t" x="950" y="428">Sonnet for the chat,</text>
+  <text class="t" x="950" y="446">Haiku for memory</text>
+
+  <!-- write path -->
+  <text class="step" x="48" y="500" style="fill:#4ade80">EVERY WRITE · THE MODEL CAN ONLY DO STEP A</text>
+
+  <rect class="card" x="48" y="514" width="264" height="112" rx="14"/>
+  <rect x="48" y="514" width="264" height="4" rx="2" fill="#4ade80"/>
+  <text class="h" x="64" y="546">A · Propose</text>
+  <text class="t" x="64" y="572">Stages a pending row next to</text>
+  <text class="t" x="64" y="590">the business data and shows</text>
+  <text class="t" x="64" y="608">the owner a card.</text>
+  <path class="gline" d="M314 570 H326" marker-end="url(#g)"/>
+
+  <rect class="card" x="330" y="514" width="264" height="112" rx="14"/>
+  <rect x="330" y="514" width="264" height="4" rx="2" fill="#4ade80"/>
+  <text class="h" x="346" y="546">B · Confirm</text>
+  <text class="t" x="346" y="572">The owner taps. Plain code,</text>
+  <text class="t" x="346" y="590">not the model, checks the</text>
+  <text class="t" x="346" y="608">proposal id and one-time nonce.</text>
+  <path class="gline" d="M596 570 H608" marker-end="url(#g)"/>
+
+  <rect class="card" x="612" y="514" width="264" height="112" rx="14"/>
+  <rect x="612" y="514" width="264" height="4" rx="2" fill="#4ade80"/>
+  <text class="h" x="628" y="546">C · Commit</text>
+  <text class="t" x="628" y="572">One transaction. If anything the</text>
+  <text class="t" x="628" y="590">card showed has changed, zero</text>
+  <text class="t" x="628" y="608">rows match. Audit row written.</text>
+  <path class="gline" d="M878 570 H890" marker-end="url(#g)"/>
+
+  <rect class="card" x="894" y="514" width="258" height="112" rx="14"/>
+  <rect x="894" y="514" width="258" height="4" rx="2" fill="#4ade80"/>
+  <text class="h" x="910" y="546">D · Undo</text>
+  <text class="t" x="910" y="572">Every write has one. The few</text>
+  <text class="t" x="910" y="590">that cannot be undone say so</text>
+  <text class="t" x="910" y="608">on the card before the tap.</text>
+</svg>

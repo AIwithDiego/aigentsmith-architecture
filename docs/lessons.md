@@ -38,6 +38,42 @@ Every non-trivial change had a written design reviewed separately from product, 
 
 The most useful architectural rule was putting the last fence in Postgres. Engine checks make for good error messages; database checks are what hold when the engine has a bug. The same thinking applied to identity (the tenant comes only from a verified token, never from a request field) and to secrets (never in the folder, so exports are clean by construction rather than by care).
 
+## No tool for a table means the agent answers from its briefing
+
+An owner asked why the agent listed three service packages when the database held five. The obvious diagnosis was a stale briefing. The real cause: the read-only role could see the packages table, but no tool exposed it. Tools are deny-by-default, so database access is not agent access. With nowhere to look, the model answered from the tenant briefing, and because the briefing sits inside the system prompt, the model treated it as instruction rather than background. The rule "every name in an answer comes from a tool call" could not hold.
+
+What changed: a reachability report that compares the live schema with the tools a tenant actually has, because the gap is invisible from inside the repo (tenant validation can only see the tools that exist). On that tenant, 25 of 38 readable tables were reachable and 13 were invisible to the agent. Another tenant on the same architecture was at 100%, so curated tools can get there; this one had drifted because nothing measured it. The report changes nothing by itself. Plenty of tables should stay unreachable, but each one is now a decision instead of an accident.
+
+## Two halves of one audit row, made two different ways
+
+Undo on a stock reorder point told the owner "the record changed after my change" when nothing had changed. The before-image was read back through the database (`18.00`); the after-image was the raw string the agent proposed (`20`); the column holds `20.00`. The cast happened server-side, so the bound string was not the string that came back, and the undo's comparison failed. It was found by driving the live demo tenant after a deploy, not by a test.
+
+What changed: the audit records what the database holds, never what we asked it to hold. Every written column comes back through `RETURNING`, rendered the same way as the readback that produced the before-image. A string assertion on the SQL could not have caught this, because the SQL was right; the new test executes the statement and reads what comes back, with a control arm proving the two strings really differ.
+
+## A kill switch with no key
+
+The pause-writes switch on one tenant returned an error, because the credential it needed had never been provisioned on that box. The engine had logged a warning about it at every boot. The tenant that could publish irreversibly to a social account was the one without the switch; the tenant that had the credential could not write at all.
+
+What changed: the writer role was created and the switch was verified end to end on the live gateway, with a probe that first proved it was talking to the build it meant to test. A warning in a boot log is not an alarm.
+
+## A sensor that reported healthy while blind
+
+The brute-force jail protecting the operator console reported ACTIVE with zero failures for over a week. The web server was writing into a deleted log file while the jail tailed a new, empty one. "Total failed: 0" is what a quiet week looks like, and also what a blind sensor looks like. The cause was a fix for a different problem: a deploy step that created the log file if it was missing used a command that replaces the file when it exists, so every deploy orphaned the writer. It surfaced while deploying something else, when a look at the web server's open files showed the deleted one.
+
+What changed: the deploy step now only creates the file when it is absent. And the deploy no longer assumes: after reloading the web server it checks for a deleted log file, restarts if it finds one, and fails the deploy if that did not fix it. That check fired on its first run.
+
+## The obvious repair would have broken production three ways
+
+One tenant's whole write layer had disappeared: write tools declared, but no database functions and no writer role behind them. Writes failed closed, so nothing bad happened, but nothing worked either. The obvious fix was to replay the original migrations. Checked against production first, that replay would have dropped three values the live admin app depended on, reverted a corrected stock-direction rule, and left in place a row-level policy bug that made one write fail with permission denied.
+
+What changed: the restore was written from the live function bodies, not from the old migration files, and it refuses to run if it finds a value it does not recognise.
+
+## Documentation drifts, firewalls drift
+
+A deploy failed with a connection timeout that looked like a network blip. The real cause: a host had been added to the build-time egress allowlist and applied to one box but not the other, because nobody re-runs a firewall script to pick up a changed string. The same drift had already happened once on the same file.
+
+What changed: the deploy compares the box's allowlist with the repo's before it starts, names the missing hosts, and fails instead of fixing it, because a deploy script must not widen a box's egress on its own authority.
+
 ## What I would do differently
 
 - **Start with the second tenant in mind.** Most of the painful work was un-hardcoding assumptions from the first tenant: timezone, admin navigation, prompt identity. A throwaway second tenant from week one would have surfaced them earlier.
